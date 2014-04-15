@@ -10,38 +10,35 @@
 # If you specify a number NUM as second parameter,
 # then the state of this check is not considered to
 # be the worst host state of the group but the
-# NUM'th worst state. E.g. if there is one critical
-# and one warning host, then specifying 2 will
-# result in a warning state and 3 in a OK state.
+# NUM'th worst state. E.g. if there is one up
+# and one unreachable host, then specifying 2 will
+# result in a unreachable state and 3 in a Up state.
 #
 # WARN is considered to be worse than UNKNOWN.
 
 GROUPNAME=$1
 if [ -z "$GROUPNAME" ] ; then
-    echo "Usage: $0 SERVICE_GROUP [NUM [SOCKET] ]"
+    echo "Usage: $0 HOST_GROUP [NUM [SOCKET] ]"
     exit 3
 fi
 NUM=${2:-1}
-SOCKET=${3:-/var/run/nagios/rw/live}
+SOCKET=${3:-$OMD_ROOT/tmp/run/live}
 
 check ()
 {
-  IFS=\; read COUNT OK CRIT WARN UNKNOWN
-  if [ $CRIT -ge $NUM ]
+  IFS=\; read COUNT UP DOWN UNREACH
+  if [ $DOWN -ge $NUM ]
   then
-      status=CRIT
+      status=DOWN
       exitcode=2
-  elif [ $((CRIT + WARN)) -ge $NUM ] ; then
-      status=WARN
+  elif [ $((UP + UNREACH)) -ge $NUM ] ; then
+      status=UNREACH
       exitcode=1
-  elif [ $((CRIT + WARN + UNKNOWN)) -ge $NUM ] ; then
-      status=UNKNOWN
-      exitcode=3
   else
       status=OK
       exitcode=0
   fi
-  echo "$status - $COUNT Hosts: $CRIT critical, $WARN warning, $UNKNOWN unknown, $OK ok"
+  echo "$status - $COUNT hosts: $DOWN Down, $UNREACH Unreachable, $UP Up"
   exit $exitcode
 }
 
@@ -52,5 +49,4 @@ Stats: last_hard_state >= 0
 Stats: last_hard_state = 0
 Stats: last_hard_state = 1
 Stats: last_hard_state = 2
-Stats: last_hard_state = 3
 EOF
